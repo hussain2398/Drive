@@ -6,6 +6,8 @@ public class Tire : MonoBehaviour {
     //    Debug.Log("Layer Index :: " + LayerMask.NameToLayer("Ground"));// returns 6 because Ground layer's index is 6th
     //    Debug.Log(1 << LayerMask.NameToLayer("Ground"));// returns 64 becuase 1<<6 gives 01000000 which is 64 in decimals and that 64 is stored in the layermask
     //}
+    public Rigidbody carRigidbody;
+    [Header("Suspension Force")]
     [Range(0, 10)]
     public float rayDistance = 0;
     [Range(0, 10)]
@@ -14,7 +16,13 @@ public class Tire : MonoBehaviour {
     public float springStrength = 5;
     [Range(0, 50)]
     public float springDamper = 5;
-    public Rigidbody carRigidbody;
+
+    [Header("Steering Force")]
+    [Range(0, 1)]
+    public float tireGripFactor = 0;
+    [Range(0, 50)]
+    public float tireMass = 1;
+
     private void Awake() {
         carRigidbody = transform.parent.GetComponent<Rigidbody>();
     }
@@ -33,6 +41,7 @@ public class Tire : MonoBehaviour {
 
         bool rayDidHit = Physics.Raycast(tireRay, out hit, maxDistance, 1 << LayerMask.NameToLayer("Ground"));
 
+        // suspension force
         if (rayDidHit) {
             Debug.DrawRay(origin, direction.normalized * maxDistance, Color.green);
             // world space direction of the spring force
@@ -54,7 +63,17 @@ public class Tire : MonoBehaviour {
             //Debug.Log(hit.transform.gameObject.layer);
         }
 
-
+        // steer force 
+        if (rayDidHit) {
+            Vector3 steeringDir = transform.right;
+            Vector3 tireWorldVel = carRigidbody.GetPointVelocity(transform.position);
+            float tireGripFactor = this.tireGripFactor;
+            float steeringVel = Vector3.Dot(steeringDir, tireWorldVel);
+            float desiredVelChange = -steeringVel * tireGripFactor;
+            float desiredAccel = desiredVelChange / Time.fixedDeltaTime;
+            float tireMass = this.tireMass;
+            carRigidbody.AddForceAtPosition(steeringDir * tireMass * desiredAccel, transform.position);
+        }
     }
     //----------------------------------
     //public Rigidbody rb;
